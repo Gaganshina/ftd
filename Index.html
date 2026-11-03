@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Box SMP - Official Minecraft Store & Management Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
+                            dark: '#080b10',
+                            card: '#121824',
+                            border: '#1f293d',
+                            accent: '#f59e0b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #080b10;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-panel {
+            background: rgba(18, 24, 36, 0.92);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .mc-btn {
+            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.35);
+            transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+        }
+        .mc-btn:active {
+            transform: translateY(2px);
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.35);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+
+    <!-- FIREBASE SDK INCLUDES -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyDummyKeyForBoxSMPStore123456",
+            authDomain: "boxsmp-store.firebaseapp.com",
+            projectId: "boxsmp-store",
+            storageBucket: "boxsmp-store.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef123456"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        window.fbAuth = getAuth(app);
+        window.fbDb = getFirestore(app);
+        window.fbSDK = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, doc, setDoc, getDoc, collection, onSnapshot };
+    </script>
+</head>
+<body class="min-h-screen pb-24 text-gray-100 flex flex-col">
+
+    <!-- TOP HEADER -->
+    <header class="sticky top-0 z-40 bg-brand-dark/95 backdrop-blur-md border-b border-brand-border shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <!-- Brand Logo / Title -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-700 flex items-center justify-center font-extrabold text-xl text-white shadow-lg border border-green-400/40">
+                    <i class="fa-solid fa-cube text-yellow-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-300 to-yellow-400 uppercase">
+                        BOX SMP
+                    </h1>
+                    <p class="text-[10px] text-gray-400 font-semibold tracking-widest uppercase">Official Store & Management</p>
+                </div>
+            </div>
+
+            <!-- Header Action Buttons -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Server Info Trigger -->
+                <button onclick="toggleModal('serverModal')" class="mc-btn px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-server text-emerald-400"></i>
+                    <span class="hidden xs:inline">Server</span> Info
+                </button>
+
+                <!-- Notifications Button -->
+                <button onclick="toggleModal('notificationsModal')" class="relative p-2 rounded-xl bg-brand-card hover:bg-gray-800 text-gray-300 border border-brand-border transition">
+                    <i class="fa-solid fa-bell text-sm"></i>
+                    <span id="notifBadge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
+                </button>
+
+                <!-- Auth State Button (Login / Sign Up or Avatar) -->
+                <div id="authHeaderBtn">
+                    <!-- Dynamic rendering via JS -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- OWNER CREDENTIALS BANNER -->
+    <div class="bg-gradient-to-r from-amber-900/40 via-yellow-900/30 to-amber-900/40 border-b border-amber-500/30 text-xs text-amber-200 px-4 py-2">
+        <div class="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-2">
+            <span class="font-bold flex items-center gap-1.5">
+                <i class="fa-solid fa-crown text-yellow-400"></i> Owner Credentials:
+            </span>
+            <div class="font-mono text-[11px] flex gap-3 flex-wrap">
+                <span>Email: <strong class="text-white">amritasinha8954@gmail.com</strong></span>
+                <span>Password: <strong class="text-yellow-300">@12345678</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT WRAPPER -->
+    <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- SEARCH BAR & TAG KEYWORDS -->
+        <section class="mb-8">
+            <div class="relative max-w-2xl mx-auto">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-base"></i>
+                <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search Netherite Sword, GApple, Elytra, Ranks..." 
+                    class="w-full pl-12 pr-10 py-3.5 rounded-2xl bg-brand-card border border-brand-border text-white placeholder-gray-400 focus:outline-none focus:border-green-500 shadow-xl transition text-sm">
+                <button onclick="clearSearch()" id="clearSearchBtn" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Key-Tags -->
+            <div class="flex items-center justify-center flex-wrap gap-2 mt-3 text-xs">
+                <span class="text-gray-400 font-semibold flex items-center gap-1"><i class="fa-solid fa-hashtag"></i> Tags:</span>
+                <button onclick="applySearchTag('Netherite Sword')" class="px-3 py-1 rounded-full bg-brand-card hover:bg-gray-800 border border-brand-border text-gray-300 hover:text-green-400 transition">⚔️ Netherite Sword</button>
+                <button onclick="applySearchTag('Enchanted Golden Apple')" class="px-3 py-1 rounded-full bg-brand-card hover:bg-gray-800 border border-brand-border text-gray-300 hover:text-yellow-400 transition">🍎 GApple</button>
+                <button onclick="applySearchTag('Elytra')" class="px-3 py-1 rounded-full bg-brand-card hover:bg-gray-800 border border-brand-border text-gray-300 hover:text-cyan-400 transition">🪽 Elytra</button>
+                <button onclick="applySearchTag('Totem')" class="px-3 py-1 rounded-full bg-brand-card hover:bg-gray-800 border border-brand-border text-gray-300 hover:text-amber-400 transition">🗿 Totem</button>
+            </div>
+        </section>
+
+        <!-- DYNAMIC PAGE SECTIONS -->
+        
+        <!-- 1. STORE CATALOG TAB -->
+        <section id="tab-home" class="space-y-6">
+            <div class="flex items-center justify-between border-b border-brand-border pb-3">
+                <h2 class="text-lg sm:text-xl font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-store text-green-400"></i> Server Shop Items
+                </h2>
+                <span id="itemCountLabel" class="text-xs bg-brand-card px-3 py-1 rounded-full border border-brand-border text-gray-400">Showing items</span>
+            </div>
+
+            <!-- Items Grid -->
+            <div id="itemsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                <!-- Dynamic Item Cards -->
+            </div>
+        </section>
+
+        <!-- 2. USER ACCOUNT TAB -->
+        <section id="tab-account" class="hidden max-w-xl mx-auto">
+            <div class="glass-panel p-6 sm:p-8 rounded-3xl border border-brand-border shadow-2xl relative overflow-hidden">
+                <div class="absolute -top-12 -right-12 w-40 h-40 bg-green-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="text-center mb-6">
+                    <!-- Avatar -->
+                    <div class="relative w-24 h-24 mx-auto mb-3">
+                        <div id="accountAvatar" class="w-full h-full rounded-2xl bg-gradient-to-tr from-green-600 to-yellow-500 flex items-center justify-center text-3xl font-black text-white shadow-xl border-2 border-green-400/50 overflow-hidden object-cover">
+                            --
+                        </div>
+                    </div>
+                    <h3 id="accDisplayName" class="text-2xl font-black text-white">Guest User</h3>
+                    <p id="accEmail" class="text-xs text-gray-400">Please log in to view profile details</p>
+                </div>
+
+                <!-- Account Info Box -->
+                <div class="space-y-3 bg-brand-card/60 p-4 rounded-2xl border border-brand-border/60 text-sm mb-6">
+                    <div class="flex justify-between items-center py-1.5 border-b border-brand-border/40">
+                        <span class="text-gray-400 flex items-center gap-2"><i class="fa-solid fa-cube text-green-400"></i> Minecraft Username</span>
+                        <span id="accMcUser" class="font-bold text-green-300">Not Logged In</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 border-b border-brand-border/40">
+                        <span class="text-gray-400 flex items-center gap-2"><i class="fa-solid fa-user text-blue-400"></i> Account Username</span>
+                        <span id="accUsername" class="font-semibold text-gray-200">Not Logged In</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5">
+                        <span class="text-gray-400 flex items-center gap-2"><i class="fa-solid fa-phone text-yellow-400"></i> Phone Number</span>
+                        <span id="accPhone" class="font-semibold text-gray-200">Not Logged In</span>
+                    </div>
+                </div>
+
+                <!-- Account Controls -->
+                <div id="accountControls" class="grid grid-cols-2 gap-3">
+                    <button onclick="openEditAccountModal()" class="mc-btn py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-bold border border-gray-600 text-xs sm:text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-green-400"></i> Edit Profile
+                    </button>
+                    <button onclick="handleLogout()" class="mc-btn py-3 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-400 font-bold border border-red-500/40 text-xs sm:text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. OWNER MANAGEMENT PANEL TAB (STRICTLY OWNER ONLY) -->
+        <section id="tab-upload" class="hidden space-y-6">
+            <div class="glass-panel p-6 rounded-3xl border border-brand-border shadow-2xl">
+                <div class="flex items-center justify-between border-b border-brand-border pb-4 mb-6 flex-wrap gap-3">
+                    <div>
+                        <h2 class="text-xl font-black text-yellow-400 flex items-center gap-2">
+                            <i class="fa-solid fa-crown text-amber-400"></i> Owner Management Portal
+                        </h2>
+                        <p class="text-xs text-gray-400">Upload items, manage inventory, create promo codes, & verify customer orders.</p>
+                    </div>
+                    
+                    <!-- Admin Sub-Tabs -->
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="switchAdminSubTab('upload')" id="adminSubBtn-upload" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-green-600 text-white shadow">
+                            <i class="fa-solid fa-plus"></i> Upload Item
+                        </button>
+                        <button onclick="switchAdminSubTab('editItems')" id="adminSubBtn-editItems" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-card text-gray-300 border border-brand-border hover:bg-gray-800">
+                            <i class="fa-solid fa-boxes-stacked"></i> Manage Stock
+                        </button>
+                        <button onclick="switchAdminSubTab('promo')" id="adminSubBtn-promo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-card text-gray-300 border border-brand-border hover:bg-gray-800">
+                            <i class="fa-solid fa-ticket"></i> Promo Codes
+                        </button>
+                        <button onclick="switchAdminSubTab('orders')" id="adminSubBtn-orders" class="relative px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-card text-gray-300 border border-brand-border hover:bg-gray-800">
+                            <i class="fa-solid fa-receipt"></i> Check Orders
+                            <span id="pendingOrdersBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">0</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SUB-SECTION A: UPLOAD ITEM -->
+                <div id="adminPanel-upload" class="space-y-4 max-w-2xl mx-auto">
+                    <h3 class="text-md font-bold text-gray-200 border-l-4 border-green-500 pl-3">Upload New Item to Shop</h3>
+                    <form onsubmit="handleUploadItem(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1">Item Name *</label>
+                                <input type="text" id="upItemName" placeholder="e.g. Netherite Sword" required class="w-full px-3 py-2.5 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-green-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1">Price (₹ INR) *</label>
+                                <input type="number" id="upItemPrice" min="1" placeholder="e.g. 150" required class="w-full px-3 py-2.5 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-green-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1">Total Stock Quantity *</label>
+                                <input type="number" id="upItemStock" min="0" placeholder="e.g. 100" required class="w-full px-3 py-2.5 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-green-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1">Quantity Provided Per 1 Stock *</label>
+                                <input type="number" id="upItemBundle" min="1" placeholder="e.g. 16 (for GApples)" required class="w-full px-3 py-2.5 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-green-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-400 mb-1">Upload QR Scanner Code Image (Optional)</label>
+                            <input type="file" id="upItemQr" accept="image/*" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-xs text-gray-300">
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-3">
+                            <button type="reset" class="px-5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs">Reset</button>
+                            <button type="submit" class="mc-btn px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-xs shadow-lg">Upload Item Now</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- SUB-SECTION B: MANAGE STOCK / EDIT ITEMS -->
+                <div id="adminPanel-editItems" class="hidden space-y-4">
+                    <h3 class="text-md font-bold text-gray-200 border-l-4 border-blue-500 pl-3">Manage Inventory & Edit Items</h3>
+                    <div id="adminItemsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Dynamic Editable Items -->
+                    </div>
+                </div>
+
+                <!-- SUB-SECTION C: PROMO CODES -->
+                <div id="adminPanel-promo" class="hidden space-y-6 max-w-2xl mx-auto">
+                    <h3 class="text-md font-bold text-gray-200 border-l-4 border-yellow-500 pl-3">Create & Manage Promo Codes</h3>
+                    <form onsubmit="handleCreatePromo(event)" class="space-y-4 bg-brand-card/40 p-4 rounded-2xl border border-brand-border">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1">Promo Code Name *</label>
+                                <input type="text" id="promoName" placeholder="e.g. BOX50" required class="w-full px-3 py-2.5 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-yellow-500 focus:outline-none uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1">Discount Amount (₹ Off) *</label>
+                                <input type="number" id="promoDiscount" min="1" placeholder="e.g. 20" required class="w-full px-3 py-2.5 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-yellow-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1">Global Usage Limit *</label>
+                                <input type="number" id="promoGlobalLimit" min="1" placeholder="e.g. 50 times total" required class="w-full px-3 py-2.5 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-yellow-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1">Per User Account Limit *</label>
+                                <input type="number" id="promoUserLimit" min="1" placeholder="e.g. 1 time per user" required class="w-full px-3 py-2.5 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-yellow-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-2">
+                            <button type="submit" class="mc-btn px-6 py-2.5 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-xs shadow-lg">Create Promo Code</button>
+                        </div>
+                    </form>
+
+                    <!-- Active Promo List -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Promo Codes</h4>
+                        <div id="promoListContainer" class="space-y-2">
+                            <!-- Dynamic Promo Cards -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-SECTION D: CHECK ORDERS -->
+                <div id="adminPanel-orders" class="hidden space-y-4">
+                    <h3 class="text-md font-bold text-gray-200 border-l-4 border-purple-500 pl-3">Check Orders Queue & Customer Details</h3>
+                    <p class="text-xs text-gray-400">Click on any customer name to inspect payment screenshot, customer info, and approve/decline/complete the order.</p>
+                    <div id="adminOrdersList" class="space-y-4">
+                        <!-- Dynamic Customer Orders -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-brand-card/95 backdrop-blur-xl border border-brand-border rounded-full px-4 py-2 shadow-2xl flex items-center gap-2 sm:gap-6">
+        <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center px-4 py-1 rounded-full text-green-400 transition">
+            <i class="fa-solid fa-house text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Home</span>
+        </button>
+        <button onclick="focusSearch()" id="nav-search" class="flex flex-col items-center px-4 py-1 rounded-full text-gray-400 hover:text-green-400 transition">
+            <i class="fa-solid fa-magnifying-glass text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Search</span>
+        </button>
+        <button onclick="switchTab('account')" id="nav-account" class="flex flex-col items-center px-4 py-1 rounded-full text-gray-400 hover:text-green-400 transition">
+            <i class="fa-solid fa-user-gear text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Account</span>
+        </button>
+        <!-- STRICTLY HIDDEN UNTIL OWNER LOGS IN -->
+        <button onclick="switchTab('upload')" id="nav-upload" class="hidden flex flex-col items-center px-4 py-1 rounded-full text-yellow-400 hover:text-yellow-300 transition">
+            <i class="fa-solid fa-cloud-arrow-up text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Upload</span>
+        </button>
+    </nav>
+
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- 1. AUTH MODAL (LOGIN / SIGN UP) -->
+    <div id="authModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 border border-brand-border relative shadow-2xl">
+            <button onclick="toggleModal('authModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <!-- Auth Tabs Switcher -->
+            <div class="flex bg-brand-card p-1 rounded-2xl border border-brand-border mb-6">
+                <button onclick="switchAuthSubTab('signup')" id="authTabBtn-signup" class="flex-1 py-2 rounded-xl text-xs font-bold bg-green-600 text-white shadow">
+                    Sign Up (New User)
+                </button>
+                <button onclick="switchAuthSubTab('login')" id="authTabBtn-login" class="flex-1 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white">
+                    Login / Sign In
+                </button>
+            </div>
+
+            <!-- SIGN UP FORM (DEFAULT FOR NEW USERS) -->
+            <form id="signupForm" onsubmit="handleSignUp(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Minecraft In-Game Username *</label>
+                    <input type="text" id="signupMcUser" required placeholder="e.g. GamerTag123" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-green-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Account Display Username *</label>
+                    <input type="text" id="signupUsername" required placeholder="e.g. RahulSinha" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-green-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Valid Email Address *</label>
+                    <input type="email" id="signupEmail" required placeholder="name@domain.com" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-green-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Mobile Phone Number *</label>
+                    <input type="tel" id="signupPhone" required placeholder="10-digit real mobile number (e.g. 9876543210)" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-green-500 focus:outline-none">
+                    <p class="text-[10px] text-gray-400 mt-1">⚠️ Phone number will be verified. Fake/repeating numbers like 9999999999 are blocked.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Password *</label>
+                    <input type="password" id="signupPass" required placeholder="Create password (min 6 characters)" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-green-500 focus:outline-none">
+                </div>
+                <button type="submit" class="mc-btn w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-sm shadow-lg mt-2">
+                    Verify & Create Firebase Account
+                </button>
+            </form>
+
+            <!-- LOGIN FORM -->
+            <form id="loginForm" onsubmit="handleLogin(event)" class="hidden space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Username / Email ID</label>
+                    <input type="text" id="loginId" required placeholder="Enter your email or username" class="w-full px-3.5 py-2.5 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-green-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Password</label>
+                    <input type="password" id="loginPass" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-brand-card border border-brand-border text-white text-sm focus:border-green-500 focus:outline-none">
+                </div>
+                <button type="submit" class="mc-btn w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-sm shadow-lg">
+                    Login to Firebase Account
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. SERVER INFO MODAL -->
+    <div id="serverModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 border border-brand-border text-center relative shadow-2xl">
+            <button onclick="toggleModal('serverModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl border border-emerald-500/30">
+                <i class="fa-solid fa-server"></i>
+            </div>
+            <h3 class="text-xl font-black text-white mb-1">Server Connection</h3>
+            <p class="text-xs text-gray-400 mb-5">Connect to Box SMP in Minecraft Java/Bedrock</p>
+
+            <div class="space-y-3 bg-brand-card p-4 rounded-2xl border border-brand-border text-left">
+                <div>
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Server Name</span>
+                    <span class="text-sm font-bold text-green-400">boxsmp</span>
+                </div>
+                <div class="pt-2 border-t border-brand-border/60">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Server IP Address</span>
+                    <div class="flex items-center justify-between gap-2 mt-1">
+                        <code class="text-xs font-mono text-yellow-300 bg-black/40 px-2 py-1 rounded border border-yellow-500/20 break-all">paid34.skilloraclouds.com:25605</code>
+                        <button onclick="copyServerIp()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. VIEW DETAILS ITEM MODAL -->
+    <div id="viewDetailsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 border border-brand-border relative shadow-2xl">
+            <button onclick="toggleModal('viewDetailsModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="text-center space-y-3">
+                <div id="vdIcon" class="text-6xl mx-auto py-2">⚔️</div>
+                <h3 id="vdTitle" class="text-2xl font-black text-white">Item Name</h3>
+                <div class="inline-block px-3 py-1 rounded-full bg-green-500/10 text-green-400 font-bold text-sm border border-green-500/30">
+                    ₹<span id="vdPrice">0</span> INR
+                </div>
+
+                <div class="bg-brand-card p-4 rounded-2xl border border-brand-border text-left space-y-2 text-xs">
+                    <div class="flex justify-between py-1 border-b border-brand-border/50">
+                        <span class="text-gray-400">Current Stock Available:</span>
+                        <span id="vdStock" class="font-bold text-yellow-400">0</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-brand-border/50">
+                        <span class="text-gray-400">Quantity per Stock Bundle:</span>
+                        <span id="vdBundle" class="font-bold text-cyan-400">1</span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                        <span class="text-gray-400">Delivery Method:</span>
+                        <span class="font-bold text-green-400">Instant In-Game Delivery</span>
+                    </div>
+                </div>
+
+                <button id="vdBuyBtn" onclick="" class="mc-btn w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-sm shadow-lg mt-4">
+                    Buy Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. BUY NOW CHECKOUT MODAL -->
+    <div id="buyModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-panel w-full max-w-lg rounded-3xl p-6 border border-brand-border relative shadow-2xl my-8">
+            <button onclick="toggleModal('buyModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 class="text-xl font-black text-white mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-cart-shopping text-green-400"></i> Checkout Order
+            </h3>
+            <p id="buyItemSummary" class="text-xs text-gray-400 mb-4">Purchasing Item</p>
+
+            <form onsubmit="handleBuySubmit(event)" class="space-y-4">
+                <!-- User Contact Info -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-400 mb-1">Email Address *</label>
+                        <input type="email" id="buyEmail" required placeholder="yourname@gmail.com" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs focus:border-green-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-400 mb-1">Phone Number *</label>
+                        <input type="tel" id="buyPhone" required placeholder="10-digit mobile number" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs focus:border-green-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-semibold text-gray-400 mb-1">Minecraft In-Game Username *</label>
+                    <input type="text" id="buyMcUser" required placeholder="Exact MC Gamer Tag" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs focus:border-green-500 focus:outline-none">
+                </div>
+
+                <!-- Promo Code -->
+                <div class="flex gap-2">
+                    <input type="text" id="buyPromoInput" placeholder="Optional Promo Code" class="flex-1 px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs focus:border-yellow-500 focus:outline-none uppercase">
+                    <button type="button" onclick="applyPromoCode()" class="px-3 py-2 rounded-xl bg-yellow-600/30 hover:bg-yellow-600/50 text-yellow-300 font-bold text-xs border border-yellow-500/40">Apply Code</button>
+                </div>
+                <div id="promoMsg" class="text-[11px]"></div>
+
+                <!-- Payment QR Display -->
+                <div class="bg-brand-card p-4 rounded-2xl border border-brand-border text-center space-y-2">
+                    <span class="text-xs font-bold text-gray-300 block">Scan QR Code to Pay</span>
+                    <div class="w-40 h-40 mx-auto bg-white p-2 rounded-xl shadow-lg border border-gray-300 flex items-center justify-center overflow-hidden">
+                        <img id="itemQrImg" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=paid34.skilloraclouds@upi&pn=BoxSMP" alt="UPI QR Code" class="w-full h-full object-contain">
+                    </div>
+                    <p class="text-[11px] text-gray-400 font-mono">UPI ID: <span class="text-yellow-400 font-bold">paid34.skilloraclouds@upi</span></p>
+                </div>
+
+                <!-- Payment Screenshot Upload -->
+                <div>
+                    <label class="block text-[11px] font-semibold text-gray-400 mb-1">Upload Payment Screenshot Proof *</label>
+                    <input type="file" id="buyProofFile" accept="image/*" required onchange="validatePaymentProof(this)" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-xs text-gray-300">
+                    <div id="proofValidationStatus" class="mt-1 text-[11px]"></div>
+                </div>
+
+                <!-- Mandatory Privacy Policy Checkbox -->
+                <div class="pt-2 border-t border-brand-border/60">
+                    <label class="flex items-start gap-2 cursor-pointer text-xs text-gray-300">
+                        <input type="checkbox" id="privacyCheck" onchange="toggleSubmitOrderBtn()" class="mt-0.5 rounded bg-brand-card border-brand-border text-green-600 focus:ring-green-500">
+                        <span>
+                            I agree to the 
+                            <button type="button" onclick="toggleModal('privacyModal')" class="text-green-400 underline font-bold">Privacy & No-Refund Policy</button>
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="submitOrderBtn" disabled class="mc-btn w-full py-3.5 rounded-xl bg-gray-700 text-gray-400 font-bold text-sm cursor-not-allowed transition">
+                    Submit Order
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. FLOATING PRIVACY POLICY MODAL -->
+    <div id="privacyModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 border border-brand-border relative shadow-2xl">
+            <h3 class="text-xl font-black text-white mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-green-400"></i> Terms & Refund Policy
+            </h3>
+            
+            <div class="space-y-3 text-xs text-gray-300 max-h-60 overflow-y-auto p-3 bg-brand-card rounded-2xl border border-brand-border no-scrollbar leading-relaxed">
+                <p class="font-bold text-yellow-400">⚠️ STRICT NO-REFUND POLICY:</p>
+                <p>1. Once payment is made, no refunds will be issued under any circumstances.</p>
+                <p>2. Uploading fake payment screenshots, face photos, or non-payment images will lead to an immediate permanent ban on Box SMP server & portal.</p>
+                <p>3. Virtual items are delivered in-game to your provided Minecraft username once the Owner approves the transaction.</p>
+            </div>
+
+            <button onclick="acceptPrivacyPolicy()" class="mc-btn w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-sm shadow-lg mt-4">
+                Got It / Agree & Close
+            </button>
+        </div>
+    </div>
+
+    <!-- 6. OWNER ORDER INSPECTOR MODAL (CHECK ORDER DETAILS + 3 BUTTONS + PAYMENT PROOF) -->
+    <div id="ownerOrderModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-panel w-full max-w-xl rounded-3xl p-6 border border-brand-border relative shadow-2xl my-6">
+            <button onclick="toggleModal('ownerOrderModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 class="text-xl font-black text-white mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-clipboard-check text-yellow-400"></i> Customer Order Verification
+            </h3>
+            <p class="text-xs text-gray-400 mb-4">Detailed inspection of payment proof screenshot and user data.</p>
+
+            <div id="ownerOrderDetailsContent" class="space-y-4">
+                <!-- Injected via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. DEDICATED EDIT ITEM MODAL -->
+    <div id="editItemModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 border border-brand-border relative shadow-2xl">
+            <button onclick="toggleModal('editItemModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 class="text-xl font-black text-white mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-pen-to-square text-blue-400"></i> Edit Item Details
+            </h3>
+
+            <form onsubmit="handleSaveEditedItem(event)" class="space-y-3">
+                <input type="hidden" id="editItemTargetId">
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Item Name</label>
+                    <input type="text" id="editModalItemName" required class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs focus:border-blue-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 mb-1">Price (₹ INR)</label>
+                        <input type="number" id="editModalItemPrice" min="1" required class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs focus:border-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 mb-1">Total Stock</label>
+                        <input type="number" id="editModalItemStock" min="0" required class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs focus:border-blue-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Quantity Provided Per Stock</label>
+                    <input type="number" id="editModalItemBundle" min="1" required class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs focus:border-blue-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Upload New QR Code (Gallery Image)</label>
+                    <input type="file" id="editModalItemQrFile" accept="image/*" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-xs text-gray-300">
+                </div>
+
+                <button type="submit" class="mc-btn w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg mt-3">
+                    Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 8. EDIT USER ACCOUNT MODAL -->
+    <div id="editAccountModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 border border-brand-border relative shadow-2xl">
+            <button onclick="toggleModal('editAccountModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h3 class="text-xl font-black text-white mb-4">Edit Profile Settings</h3>
+
+            <form onsubmit="handleSaveAccount(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Change Profile Avatar</label>
+                    <input type="file" id="editAvatarFile" accept="image/*" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-xs text-gray-300">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Display Name / Account Name</label>
+                    <input type="text" id="editAccName" required class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Account Username</label>
+                    <input type="text" id="editUsername" required class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1">Email ID (Fixed)</label>
+                    <input type="email" id="editEmail" disabled class="w-full px-3 py-2 rounded-xl bg-gray-800 border border-brand-border text-gray-500 text-xs cursor-not-allowed">
+                </div>
+
+                <div class="pt-2 border-t border-brand-border/60">
+                    <span class="text-xs font-bold text-yellow-400 block mb-2">Change Password</span>
+                    <div class="space-y-2">
+                        <input type="password" id="editCurrentPass" placeholder="Current Password" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs">
+                        <input type="password" id="editNewPass" placeholder="New Password" class="w-full px-3 py-2 rounded-xl bg-brand-card border border-brand-border text-white text-xs">
+                    </div>
+                </div>
+
+                <button type="submit" class="mc-btn w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-xs shadow-lg mt-3">
+                    Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 9. NOTIFICATIONS MODAL -->
+    <div id="notificationsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 border border-brand-border relative shadow-2xl">
+            <button onclick="toggleModal('notificationsModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h3 class="text-lg font-black text-white mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-bell text-yellow-400"></i> My Notifications
+            </h3>
+
+            <div id="notificationsList" class="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
+                <p class="text-xs text-gray-400 text-center py-4">No notifications yet</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        // Official Updated Owner Account Specification
+        const OWNER_CREDENTIALS = {
+            name: "Gaganshina",
+            mcUser: "not_gaganxds",
+            phone: "6202504083",
+            email: "amritasinha8954@gmail.com",
+            username: "Gaganshina",
+            pass: "@12345678",
+            isOwner: true
+        };
+
+        // Standard Default Store Catalog Items
+        const DEFAULT_ITEMS = [
+            { id: "item-1", name: "Netherite Sword", price: 150, stock: 45, bundle: 1, qrUrl: "", icon: "⚔️" },
+            { id: "item-2", name: "Enchanted Golden Apple", price: 80, stock: 100, bundle: 16, qrUrl: "", icon: "🍎" },
+            { id: "item-3", name: "Elytra Wings", price: 250, stock: 12, bundle: 1, qrUrl: "", icon: "🪽" },
+            { id: "item-4", name: "Totem of Undying", price: 60, stock: 75, bundle: 5, qrUrl: "", icon: "🗿" },
+            { id: "item-5", name: "VIP Crate Key", price: 120, stock: 50, bundle: 3, qrUrl: "", icon: "🔑" }
+        ];
+
+        // Application State
+        let users = JSON.parse(localStorage.getItem('boxsmp_users')) || [OWNER_CREDENTIALS];
+        
+        // Sync Owner Account Record
+        const ownerIdx = users.findIndex(u => u.email === OWNER_CREDENTIALS.email || u.email === "gagan@boxsmp.com" || u.username === "Gaganshina");
+        if (ownerIdx !== -1) {
+            users[ownerIdx] = { ...users[ownerIdx], ...OWNER_CREDENTIALS };
+        } else {
+            users.push(OWNER_CREDENTIALS);
+        }
+
+        // PERSISTENT LOGIN LOCK - Keeps user logged in across session/reloads
+        let currentUser = JSON.parse(localStorage.getItem('boxsmp_current_user')) || null;
+        let items = JSON.parse(localStorage.getItem('boxsmp_items')) || DEFAULT_ITEMS;
+        let promoCodes = JSON.parse(localStorage.getItem('boxsmp_promos')) || [];
+        let orders = JSON.parse(localStorage.getItem('boxsmp_orders')) || [];
+        let notifications = JSON.parse(localStorage.getItem('boxsmp_notifs')) || [];
+
+        let activeCheckoutItem = null;
+        let appliedPromoDiscount = 0;
+        let activeAppliedPromoName = "";
+        let isPaymentProofValid = false;
+
+        // LocalStorage Sync
+        function saveData() {
+            localStorage.setItem('boxsmp_users', JSON.stringify(users));
+            localStorage.setItem('boxsmp_current_user', JSON.stringify(currentUser));
+            localStorage.setItem('boxsmp_items', JSON.stringify(items));
+            localStorage.setItem('boxsmp_promos', JSON.stringify(promoCodes));
+            localStorage.setItem('boxsmp_orders', JSON.stringify(orders));
+            localStorage.setItem('boxsmp_notifs', JSON.stringify(notifications));
+        }
+
+        // Strict Security: Check if user is Owner
+        function isUserOwner(user) {
+            if (!user) return false;
+            return (user.email === OWNER_CREDENTIALS.email || user.username === OWNER_CREDENTIALS.username || user.mcUser === OWNER_CREDENTIALS.mcUser) && user.pass === OWNER_CREDENTIALS.pass;
+        }
+
+        // Real Phone Number Validation (Checking standard format and repetitive dummy numbers like 9999999999, 1234567890)
+        function isValidPhoneNumber(phone) {
+            const cleanPhone = phone.replace(/[^0-9]/g, '');
+            if (cleanPhone.length !== 10) return false;
+            if (/^(\d)\1{9}$/.test(cleanPhone)) return false;
+            if (cleanPhone === "1234567890" || cleanPhone === "0123456789" || cleanPhone === "9876543210") return false;
+            return true;
+        }
+
+        // Real Email Format Validation
+        function isValidEmail(email) {
+            const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            return re.test(String(email).toLowerCase());
+        }
+
+        // Window Init
+        window.onload = function() {
+            saveData();
+            // Persistent Login Lock verify
+            if (currentUser) {
+                // Re-sync with saved user DB if needed
+                const match = users.find(u => u.email === currentUser.email);
+                if (match) currentUser = match;
+            }
+
+            if (!currentUser || !isUserOwner(currentUser)) {
+                const navUpload = document.getElementById('nav-upload');
+                if (navUpload) {
+                    navUpload.classList.add('hidden');
+                    navUpload.style.display = 'none';
+                }
+                const tabUpload = document.getElementById('tab-upload');
+                if (tabUpload) tabUpload.classList.add('hidden');
+            }
+            renderHeaderAuth();
+            renderItems();
+            renderPromoCodes();
+            renderAdminItems();
+            renderOrders();
+            renderNotifications();
+            updateAccountView();
+        };
+
+        // --- AUTHENTICATION & FIREBASE LOGIC ---
+        function renderHeaderAuth() {
+            const headerBtn = document.getElementById('authHeaderBtn');
+            const navUpload = document.getElementById('nav-upload');
+
+            if (currentUser && isUserOwner(currentUser)) {
+                navUpload.classList.remove('hidden');
+                navUpload.style.display = 'flex';
+            } else {
+                navUpload.classList.add('hidden');
+                navUpload.style.display = 'none';
+                const uploadTab = document.getElementById('tab-upload');
+                if (uploadTab && !uploadTab.classList.contains('hidden')) {
+                    switchTab('home');
+                }
+            }
+
+            if (currentUser) {
+                const initials = currentUser.name ? currentUser.name.split(' ').map(n=>n[0]).join('').toUpperCase().substring(0, 2) : "US";
+                headerBtn.innerHTML = `
+                    <button onclick="switchTab('account')" class="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-brand-card hover:bg-gray-800 border border-brand-border transition">
+                        <div class="w-6 h-6 rounded-lg bg-green-600 font-bold text-xs flex items-center justify-center text-white overflow-hidden">
+                            ${currentUser.avatarUrl ? `<img src="${currentUser.avatarUrl}" class="w-full h-full object-cover">` : initials}
+                        </div>
+                        <span class="text-xs font-bold text-gray-200 hidden sm:inline">${currentUser.name || currentUser.username}</span>
+                    </button>
+                `;
+            } else {
+                headerBtn.innerHTML = `
+                    <button onclick="toggleModal('authModal')" class="mc-btn px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-xs sm:text-sm font-bold transition">
+                        Login / Sign Up
+                    </button>
+                `;
+            }
+        }
+
+        function switchAuthSubTab(type) {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const btnLogin = document.getElementById('authTabBtn-login');
+            const btnSignup = document.getElementById('authTabBtn-signup');
+
+            if (type === 'login') {
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+                btnLogin.className = "flex-1 py-2 rounded-xl text-xs font-bold bg-green-600 text-white shadow";
+                btnSignup.className = "flex-1 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white";
+            } else {
+                loginForm.classList.add('hidden');
+                signupForm.classList.remove('hidden');
+                btnSignup.className = "flex-1 py-2 rounded-xl text-xs font-bold bg-green-600 text-white shadow";
+                btnLogin.className = "flex-1 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white";
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const id = document.getElementById('loginId').value.trim();
+            const pass = document.getElementById('loginPass').value;
+
+            // Direct local check for Owner Credentials
+            if ((id === OWNER_CREDENTIALS.email || id === OWNER_CREDENTIALS.username) && pass === OWNER_CREDENTIALS.pass) {
+                currentUser = OWNER_CREDENTIALS;
+                saveData();
+                renderHeaderAuth();
+                updateAccountView();
+                renderNotifications();
+                toggleModal('authModal');
+                showToast(`👑 Owner Login Successful! Upload Portal Unlocked.`, 'success');
+                return;
+            }
+
+            // Firebase authentication attempt if available
+            if (window.fbAuth && window.fbSDK) {
+                try {
+                    const userCredential = await window.fbSDK.signInWithEmailAndPassword(window.fbAuth, id, pass);
+                    const fbUser = userCredential.user;
+                    const foundLocal = users.find(u => u.email === fbUser.email);
+                    if (foundLocal) {
+                        currentUser = foundLocal;
+                    } else {
+                        currentUser = { name: fbUser.email.split('@')[0], email: fbUser.email, username: fbUser.email.split('@')[0], phone: "Verified", pass };
+                        users.push(currentUser);
+                    }
+                    saveData();
+                    renderHeaderAuth();
+                    updateAccountView();
+                    renderNotifications();
+                    toggleModal('authModal');
+                    showToast(`Logged in successfully via Firebase!`, 'success');
+                    return;
+                } catch (err) {
+                    console.log("Firebase auth fallback to local:", err.message);
+                }
+            }
+
+            const foundUser = users.find(u => (u.username === id || u.email === id || u.mcUser === id) && u.pass === pass);
+            
+            if (foundUser) {
+                currentUser = foundUser;
+                saveData();
+                renderHeaderAuth();
+                updateAccountView();
+                renderNotifications();
+                toggleModal('authModal');
+                
+                if (isUserOwner(currentUser)) {
+                    showToast(`👑 Owner Login Successful! Upload Portal Unlocked.`, 'success');
+                } else {
+                    showToast(`Logged in as ${currentUser.name}!`, 'success');
+                }
+            } else {
+                showToast("Invalid Credentials! Please Sign Up if you are a new user.", 'error');
+            }
+        }
+
+        async function handleSignUp(e) {
+            e.preventDefault();
+            const mcUser = document.getElementById('signupMcUser').value.trim();
+            const username = document.getElementById('signupUsername').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const phone = document.getElementById('signupPhone').value.trim();
+            const pass = document.getElementById('signupPass').value;
+
+            if (!isValidEmail(email)) {
+                showToast("Invalid Email Format! Please enter a real email address.", 'error');
+                return;
+            }
+
+            if (!isValidPhoneNumber(phone)) {
+                showToast("Invalid Mobile Phone Number! Fake numbers (e.g. 9999999999) are strictly blocked.", 'error');
+                return;
+            }
+
+            if (users.some(u => u.email === email || u.username === username)) {
+                showToast("Account with this email or username already exists! Please login instead.", 'error');
+                return;
+            }
+
+            if (window.fbAuth && window.fbSDK) {
+                try {
+                    await window.fbSDK.createUserWithEmailAndPassword(window.fbAuth, email, pass);
+                } catch (err) {
+                    console.log("Firebase signup note:", err.message);
+                }
+            }
+
+            const newUser = { name: username, mcUser, username, email, phone, pass, isOwner: false };
+            users.push(newUser);
+            currentUser = newUser;
+            saveData();
+            renderHeaderAuth();
+            updateAccountView();
+            renderNotifications();
+            toggleModal('authModal');
+            showToast("Firebase Account created & verified successfully!", 'success');
+        }
+
+        function handleLogout() {
+            if (window.fbAuth && window.fbSDK) {
+                window.fbSDK.signOut(window.fbAuth).catch(() => {});
+            }
+            currentUser = null;
+            saveData();
+            renderHeaderAuth();
+            switchTab('home');
+            showToast("Logged out successfully.");
+        }
+
+        // --- NAVIGATION CONTROLLER ---
+        function switchTab(tabId) {
+            if (tabId === 'upload' && (!currentUser || !isUserOwner(currentUser))) {
+                showToast("Access Denied! Only Owner account can access Upload Portal.", 'error');
+                return;
+            }
+
+            ['home', 'account', 'upload'].forEach(t => {
+                const sec = document.getElementById(`tab-${t}`);
+                if (sec) sec.classList.add('hidden');
+                const navBtn = document.getElementById(`nav-${t}`);
+                if (navBtn) {
+                    if (t === 'upload' && (!currentUser || !isUserOwner(currentUser))) {
+                        navBtn.classList.add('hidden');
+                        navBtn.style.display = 'none';
+                    } else {
+                        navBtn.className = "flex flex-col items-center px-4 py-1 rounded-full text-gray-400 hover:text-green-400 transition";
+                    }
+                }
+            });
+
+            const activeSection = document.getElementById(`tab-${tabId}`);
+            if (activeSection) activeSection.classList.remove('hidden');
+            
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                if (tabId === 'upload') {
+                    activeNav.className = "flex flex-col items-center px-4 py-1 rounded-full text-yellow-400 transition";
+                } else {
+                    activeNav.className = "flex flex-col items-center px-4 py-1 rounded-full text-green-400 transition";
+                }
+            }
+        }
+
+        function focusSearch() {
+            switchTab('home');
+            document.getElementById('searchInput').focus();
+        }
+
+        // --- STORE CATALOG & SEARCH ---
+        function getMinecraftIconByName(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('sword')) return '⚔️';
+            if (lower.includes('apple') || lower.includes('gapple')) return '🍎';
+            if (lower.includes('elytra') || lower.includes('wing')) return '🪽';
+            if (lower.includes('totem')) return '🗿';
+            if (lower.includes('key')) return '🔑';
+            if (lower.includes('armor') || lower.includes('chestplate')) return '🛡️';
+            if (lower.includes('bow')) return '🏹';
+            if (lower.includes('pickaxe')) return '⛏️';
+            return '📦';
+        }
+
+        function renderItems(filterQuery = "") {
+            const grid = document.getElementById('itemsGrid');
+            grid.innerHTML = "";
+
+            const filtered = items.filter(i => i.name.toLowerCase().includes(filterQuery.toLowerCase()));
+            document.getElementById('itemCountLabel').innerText = `Showing ${filtered.length} items`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-gray-500">
+                        <i class="fa-solid fa-box-open text-4xl mb-2"></i>
+                        <p>No items found matching your search.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const icon = item.icon || getMinecraftIconByName(item.name);
+                const isOutOfStock = item.stock <= 0;
+
+                const card = document.createElement('div');
+                card.className = "glass-panel rounded-2xl p-4 border border-brand-border flex flex-col justify-between shadow-lg relative group hover:border-green-500/50 transition";
+                card.innerHTML = `
+                    <div>
+                        <div class="w-full h-32 rounded-xl bg-brand-card flex items-center justify-center text-5xl mb-3 border border-brand-border/40 group-hover:scale-105 transition">
+                            ${icon}
+                        </div>
+                        <h3 class="font-bold text-base text-white line-clamp-1">${item.name}</h3>
+                        <div class="flex items-center justify-between text-xs text-gray-400 mt-1 mb-3">
+                            <span>Bundle: <strong class="text-cyan-400">${item.bundle || 1}x</strong></span>
+                            <span>Stock: <strong class="${isOutOfStock ? 'text-red-400' : 'text-yellow-400'}">${item.stock} left</strong></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-lg font-black text-green-400 mb-3">
+                            ₹${item.price} <span class="text-[10px] text-gray-400 font-normal">INR</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="openViewDetailsModal('${item.id}')" class="py-2 rounded-xl bg-brand-card hover:bg-gray-800 border border-brand-border text-gray-300 font-bold text-xs transition">
+                                Details
+                            </button>
+                            <button onclick="triggerBuyNow('${item.id}')" ${isOutOfStock ? 'disabled' : ''} class="mc-btn py-2 rounded-xl ${isOutOfStock ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500 text-white'} font-bold text-xs transition">
+                                ${isOutOfStock ? 'Sold Out' : 'Buy Now'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // MANDATORY BUY NOW SECURITY CHECK FOR GUEST ACCOUNTS
+        function triggerBuyNow(itemId) {
+            if (!currentUser) {
+                showToast("Please sign up or login first to buy items! Guest purchases are blocked.", 'error');
+                switchAuthSubTab('signup');
+                toggleModal('authModal');
+                return;
+            }
+            openBuyModal(itemId);
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value;
+            const clearBtn = document.getElementById('clearSearchBtn');
+            if (query) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+            renderItems(query);
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = "";
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            renderItems();
+        }
+
+        function applySearchTag(tag) {
+            document.getElementById('searchInput').value = tag;
+            handleSearch();
+        }
+
+        // --- CHECKOUT & STRICT IMAGE VALIDATOR (BLOCKS HUMAN FACES / NON-PAYMENT PHOTOS) ---
+        function openViewDetailsModal(itemId) {
+            const item = items.find(i => i.id === itemId);
+            if (!item) return;
+
+            document.getElementById('vdIcon').innerText = item.icon || getMinecraftIconByName(item.name);
+            document.getElementById('vdTitle').innerText = item.name;
+            document.getElementById('vdPrice').innerText = item.price;
+            document.getElementById('vdStock').innerText = item.stock;
+            document.getElementById('vdBundle').innerText = item.bundle || 1;
+            
+            const buyBtn = document.getElementById('vdBuyBtn');
+            if (item.stock <= 0) {
+                buyBtn.disabled = true;
+                buyBtn.innerText = "Sold Out";
+                buyBtn.className = "mc-btn w-full py-3 rounded-xl bg-gray-700 text-gray-500 font-bold text-sm cursor-not-allowed mt-4";
+            } else {
+                buyBtn.disabled = false;
+                buyBtn.innerText = "Buy Now";
+                buyBtn.className = "mc-btn w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-sm shadow-lg mt-4";
+                buyBtn.onclick = function() {
+                    toggleModal('viewDetailsModal');
+                    triggerBuyNow(itemId);
+                };
+            }
+
+            toggleModal('viewDetailsModal');
+        }
+
+        function openBuyModal(itemId) {
+            const item = items.find(i => i.id === itemId);
+            if (!item || item.stock <= 0) {
+                showToast("This item is out of stock!", 'error');
+                return;
+            }
+
+            activeCheckoutItem = item;
+            appliedPromoDiscount = 0;
+            activeAppliedPromoName = "";
+            isPaymentProofValid = false;
+
+            document.getElementById('buyItemSummary').innerText = `Purchasing: ${item.name} (₹${item.price})`;
+            document.getElementById('buyPromoInput').value = "";
+            document.getElementById('promoMsg').innerText = "";
+            document.getElementById('buyProofFile').value = "";
+            document.getElementById('proofValidationStatus').innerText = "";
+            document.getElementById('privacyCheck').checked = false;
+            
+            if (currentUser) {
+                document.getElementById('buyEmail').value = currentUser.email || "";
+                document.getElementById('buyPhone').value = currentUser.phone || "";
+                document.getElementById('buyMcUser').value = currentUser.mcUser || "";
+            }
+
+            const qrImg = document.getElementById('itemQrImg');
+            if (item.qrUrl) {
+                qrImg.src = item.qrUrl;
+            } else {
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=paid34.skilloraclouds@upi&pn=BoxSMP&am=${item.price}`;
+            }
+
+            toggleSubmitOrderBtn();
+            toggleModal('buyModal');
+        }
+
+        function applyPromoCode() {
+            const input = document.getElementById('buyPromoInput').value.trim().toUpperCase();
+            const msg = document.getElementById('promoMsg');
+
+            if (!input) {
+                msg.className = "text-[11px] text-red-400";
+                msg.innerText = "Please enter a code!";
+                return;
+            }
+
+            const promo = promoCodes.find(p => p.name.toUpperCase() === input);
+
+            if (!promo) {
+                msg.className = "text-[11px] text-red-400";
+                msg.innerText = "Invalid promo code!";
+                return;
+            }
+
+            if (promo.usedCount >= promo.globalLimit) {
+                msg.className = "text-[11px] text-red-400";
+                msg.innerText = "Promo code global limit reached!";
+                return;
+            }
+
+            appliedPromoDiscount = promo.discount;
+            activeAppliedPromoName = promo.name;
+            const finalPrice = Math.max(0, activeCheckoutItem.price - appliedPromoDiscount);
+            msg.className = "text-[11px] text-green-400 font-bold";
+            msg.innerText = `Promo Applied! Discount: ₹${appliedPromoDiscount}. Final Price: ₹${finalPrice}`;
+            
+            const qrImg = document.getElementById('itemQrImg');
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=paid34.skilloraclouds@upi&pn=BoxSMP&am=${finalPrice}`;
+        }
+
+        // STRICT IMAGE ANALYSIS - REJECTS SELFIE/FACE/NON-PAYMENT IMAGES IMMEDIATELY
+        function validatePaymentProof(fileInput) {
+            const statusDiv = document.getElementById('proofValidationStatus');
+            const file = fileInput.files[0];
+            isPaymentProofValid = false;
+
+            if (!file) {
+                statusDiv.innerText = "";
+                toggleSubmitOrderBtn();
+                return;
+            }
+
+            statusDiv.className = "mt-1 text-[11px] text-yellow-400 flex items-center gap-1";
+            statusDiv.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Checking image validity...`;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    // 1. Mobile screenshot orientation check
+                    if (img.height < img.width) {
+                        fileInput.value = ""; // Reset selected file instantly
+                        statusDiv.className = "mt-1 text-[11px] text-red-400 font-bold";
+                        statusDiv.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Rejected! Landscape/wide photos are not accepted. Only mobile UPI payment screenshots are allowed.`;
+                        toggleSubmitOrderBtn();
+                        return;
+                    }
+
+                    // 2. Strict Skin-tone detection for rejecting face/people selfies
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imgData.data;
+                    let skinToneCount = 0;
+                    let appUiColorCount = 0;
+                    const sampleStep = 12;
+
+                    for (let i = 0; i < data.length; i += 4 * sampleStep) {
+                        const r = data[i];
+                        const g = data[i+1];
+                        const b = data[i+2];
+
+                        // Human skin-tone color model
+                        const isSkin = (r > 95 && g > 40 && b > 20 && (Math.max(r, g, b) - Math.min(r, g, b) > 15) && Math.abs(r - g) > 15 && r > g && r > b);
+                        if (isSkin) skinToneCount++;
+
+                        // UPI App specific signatures (Paytm Cyan, PhonePe Purple, Google Pay White/Blue UI, Successful Green checks)
+                        const isPaytmCyan = (b > 130 && r < 100);
+                        const isPhonePePurple = (r > 75 && b > 120 && g < 80);
+                        const isGPayTheme = (r > 210 && g > 210 && b > 210) || (b > 170 && g > 110);
+                        const isGreenBanner = (g > 130 && r < 110);
+
+                        if (isPaytmCyan || isPhonePePurple || isGPayTheme || isGreenBanner) {
+                            appUiColorCount++;
+                        }
+                    }
+
+                    const totalSamples = data.length / (4 * sampleStep);
+                    const skinRatio = skinToneCount / totalSamples;
+
+                    // If human skin ratio > 18%, reject file and clear input immediately
+                    if (skinRatio > 0.18) {
+                        fileInput.value = "";
+                        statusDiv.className = "mt-1 text-[11px] text-red-400 font-bold";
+                        statusDiv.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Photo of a Person / Selfie Detected! Please select only genuine UPI payment proof screenshots.`;
+                        toggleSubmitOrderBtn();
+                        return;
+                    }
+
+                    if (appUiColorCount > 8) {
+                        isPaymentProofValid = true;
+                        statusDiv.className = "mt-1 text-[11px] text-green-400 font-bold flex items-center gap-1";
+                        statusDiv.innerHTML = `<i class="fa-solid fa-circle-check"></i> Authentic UPI Payment Screenshot Verified!`;
+                    } else {
+                        fileInput.value = "";
+                        statusDiv.className = "mt-1 text-[11px] text-red-400 font-bold";
+                        statusDiv.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Invalid Screenshot! System detected non-payment photo. Select real payment receipt.`;
+                    }
+                    toggleSubmitOrderBtn();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function toggleSubmitOrderBtn() {
+            const btn = document.getElementById('submitOrderBtn');
+            const privacyChecked = document.getElementById('privacyCheck').checked;
+
+            if (privacyChecked && isPaymentProofValid) {
+                btn.disabled = false;
+                btn.className = "mc-btn w-full py-3.5 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-sm shadow-lg transition";
+            } else {
+                btn.disabled = true;
+                btn.className = "mc-btn w-full py-3.5 rounded-xl bg-gray-700 text-gray-400 font-bold text-sm cursor-not-allowed transition";
+            }
+        }
+
+        function acceptPrivacyPolicy() {
+            toggleModal('privacyModal');
+            document.getElementById('privacyCheck').checked = true;
+            toggleSubmitOrderBtn();
+        }
+
+        function handleBuySubmit(e) {
+            e.preventDefault();
+            if (!activeCheckoutItem || !isPaymentProofValid || !currentUser) return;
+
+            const email = document.getElementById('buyEmail').value.trim();
+            const phone = document.getElementById('buyPhone').value.trim();
+            const mcUser = document.getElementById('buyMcUser').value.trim();
+            const proofFile = document.getElementById('buyProofFile').files[0];
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const proofDataUrl = evt.target.result;
+                const finalPrice = Math.max(0, activeCheckoutItem.price - appliedPromoDiscount);
+
+                const newOrder = {
+                    id: "ORD-" + Math.floor(100000 + Math.random() * 900000),
+                    itemId: activeCheckoutItem.id,
+                    itemName: activeCheckoutItem.name,
+                    price: finalPrice,
+                    email,
+                    phone,
+                    mcUser,
+                    username: currentUser.username || currentUser.name,
+                    userEmail: currentUser.email,
+                    proofUrl: proofDataUrl,
+                    promoUsed: activeAppliedPromoName,
+                    status: "Pending",
+                    timestamp: new Date().toLocaleString()
+                };
+
+                orders.unshift(newOrder);
+
+                if (activeAppliedPromoName) {
+                    const pIndex = promoCodes.findIndex(p => p.name === activeAppliedPromoName);
+                    if (pIndex !== -1) {
+                        promoCodes[pIndex].usedCount = (promoCodes[pIndex].usedCount || 0) + 1;
+                    }
+                }
+
+                saveData();
+                renderOrders();
+                renderPromoCodes();
+                toggleModal('buyModal');
+                showToast("Order submitted successfully! Owner will verify your payment.", 'success');
+            };
+            reader.readAsDataURL(proofFile);
+        }
+
+        // --- ACCOUNT MANAGEMENT ---
+        function updateAccountView() {
+            const avatar = document.getElementById('accountAvatar');
+            const dispName = document.getElementById('accDisplayName');
+            const email = document.getElementById('accEmail');
+            const mcUser = document.getElementById('accMcUser');
+            const username = document.getElementById('accUsername');
+            const phone = document.getElementById('accPhone');
+            const controls = document.getElementById('accountControls');
+
+            if (currentUser) {
+                const initials = currentUser.name ? currentUser.name.split(' ').map(n=>n[0]).join('').toUpperCase().substring(0, 2) : "US";
+                if (currentUser.avatarUrl) {
+                    avatar.innerHTML = `<img src="${currentUser.avatarUrl}" class="w-full h-full object-cover">`;
+                } else {
+                    avatar.innerText = initials;
+                }
+
+                dispName.innerText = currentUser.name || currentUser.username;
+                email.innerText = currentUser.email;
+                mcUser.innerText = currentUser.mcUser || "N/A";
+                username.innerText = currentUser.username || currentUser.name;
+                phone.innerText = currentUser.phone || "N/A";
+                controls.classList.remove('hidden');
+            } else {
+                avatar.innerText = "--";
+                dispName.innerText = "Guest User";
+                email.innerText = "Not logged in";
+                mcUser.innerText = "N/A";
+                username.innerText = "N/A";
+                phone.innerText = "N/A";
+                controls.classList.add('hidden');
+            }
+        }
+
+        function openEditAccountModal() {
+            if (!currentUser) return;
+            document.getElementById('editAccName').value = currentUser.name || "";
+            document.getElementById('editUsername').value = currentUser.username || "";
+            document.getElementById('editEmail').value = currentUser.email || "";
+            document.getElementById('editCurrentPass').value = "";
+            document.getElementById('editNewPass').value = "";
+            toggleModal('editAccountModal');
+        }
+
+        function handleSaveAccount(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const name = document.getElementById('editAccName').value.trim();
+            const username = document.getElementById('editUsername').value.trim();
+            const currPass = document.getElementById('editCurrentPass').value;
+            const newPass = document.getElementById('editNewPass').value;
+            const avatarFile = document.getElementById('editAvatarFile').files[0];
+
+            if (newPass && currPass !== currentUser.pass) {
+                showToast("Current password does not match!", 'error');
+                return;
+            }
+
+            currentUser.name = name;
+            currentUser.username = username;
+            if (newPass) currentUser.pass = newPass;
+
+            const userIndex = users.findIndex(u => u.email === currentUser.email);
+            if (userIndex !== -1) users[userIndex] = currentUser;
+
+            const finalize = () => {
+                saveData();
+                renderHeaderAuth();
+                updateAccountView();
+                toggleModal('editAccountModal');
+                showToast("Account updated successfully!", 'success');
+            };
+
+            if (avatarFile) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    currentUser.avatarUrl = evt.target.result;
+                    if (userIndex !== -1) users[userIndex] = currentUser;
+                    finalize();
+                };
+                reader.readAsDataURL(avatarFile);
+            } else {
+                finalize();
+            }
+        }
+
+        // --- OWNER PORTAL & EDIT SYSTEM ---
+        function switchAdminSubTab(subId) {
+            ['upload', 'promo', 'editItems', 'orders'].forEach(s => {
+                const sec = document.getElementById(`adminPanel-${s}`);
+                if (sec) sec.classList.add('hidden');
+                const btn = document.getElementById(`adminSubBtn-${s}`);
+                if (btn) btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-card text-gray-300 border border-brand-border hover:bg-gray-800";
+            });
+
+            const activeSec = document.getElementById(`adminPanel-${subId}`);
+            if (activeSec) activeSec.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`adminSubBtn-${subId}`);
+            if (activeBtn) activeBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-green-600 text-white shadow";
+        }
+
+        function handleUploadItem(e) {
+            e.preventDefault();
+            if (!isUserOwner(currentUser)) return;
+
+            const name = document.getElementById('upItemName').value.trim();
+            const price = parseFloat(document.getElementById('upItemPrice').value);
+            const stock = parseInt(document.getElementById('upItemStock').value);
+            const bundle = parseInt(document.getElementById('upItemBundle').value);
+            const qrFile = document.getElementById('upItemQr').files[0];
+
+            const createObj = (qrDataUrl = "") => {
+                const newItem = {
+                    id: "item-" + Date.now(),
+                    name,
+                    price,
+                    stock,
+                    bundle,
+                    qrUrl: qrDataUrl,
+                    icon: getMinecraftIconByName(name)
+                };
+                items.unshift(newItem);
+                saveData();
+                renderItems();
+                renderAdminItems();
+                e.target.reset();
+                showToast(`Item '${name}' uploaded to store!`, 'success');
+            };
+
+            if (qrFile) {
+                const reader = new FileReader();
+                reader.onload = evt => createObj(evt.target.result);
+                reader.readAsDataURL(qrFile);
+            } else {
+                createObj("");
+            }
+        }
+
+        function renderAdminItems() {
+            const list = document.getElementById('adminItemsList');
+            list.innerHTML = "";
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-brand-card p-4 rounded-2xl border border-brand-border flex items-center justify-between gap-3 shadow";
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-12 h-12 rounded-xl bg-black/40 flex items-center justify-center text-2xl border border-brand-border/60 shrink-0">
+                            ${item.icon || '📦'}
+                        </div>
+                        <div class="truncate">
+                            <h4 class="font-bold text-white text-sm truncate">${item.name}</h4>
+                            <p class="text-[11px] text-gray-400">₹${item.price} | Stock: <strong class="text-yellow-400">${item.stock}</strong> (${item.bundle||1}x)</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="openEditItemModal('${item.id}')" class="px-3 py-1.5 rounded-xl bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 border border-blue-500/30 text-xs font-bold transition flex items-center gap-1">
+                            <i class="fa-solid fa-pen"></i> Edit
+                        </button>
+                        <button onclick="deleteItem('${item.id}')" class="px-3 py-1.5 rounded-xl bg-red-600/20 text-red-400 hover:bg-red-600/40 border border-red-500/30 text-xs font-bold transition flex items-center gap-1">
+                            <i class="fa-solid fa-trash"></i> Delete
+                        </button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function openEditItemModal(itemId) {
+            const item = items.find(i => i.id === itemId);
+            if (!item) return;
+
+            document.getElementById('editItemTargetId').value = item.id;
+            document.getElementById('editModalItemName').value = item.name;
+            document.getElementById('editModalItemPrice').value = item.price;
+            document.getElementById('editModalItemStock').value = item.stock;
+            document.getElementById('editModalItemBundle').value = item.bundle || 1;
+            document.getElementById('editModalItemQrFile').value = "";
+
+            toggleModal('editItemModal');
+        }
+
+        function handleSaveEditedItem(e) {
+            e.preventDefault();
+            const itemId = document.getElementById('editItemTargetId').value;
+            const item = items.find(i => i.id === itemId);
+            if (!item) return;
+
+            item.name = document.getElementById('editModalItemName').value.trim();
+            item.price = parseFloat(document.getElementById('editModalItemPrice').value);
+            item.stock = parseInt(document.getElementById('editModalItemStock').value);
+            item.bundle = parseInt(document.getElementById('editModalItemBundle').value);
+            item.icon = getMinecraftIconByName(item.name);
+
+            const qrFile = document.getElementById('editModalItemQrFile').files[0];
+
+            const finalize = () => {
+                saveData();
+                renderItems();
+                renderAdminItems();
+                toggleModal('editItemModal');
+                showToast(`Item '${item.name}' saved!`, 'success');
+            };
+
+            if (qrFile) {
+                const reader = new FileReader();
+                reader.onload = evt => {
+                    item.qrUrl = evt.target.result;
+                    finalize();
+                };
+                reader.readAsDataURL(qrFile);
+            } else {
+                finalize();
+            }
+        }
+
+        function deleteItem(itemId) {
+            items = items.filter(i => i.id !== itemId);
+            saveData();
+            renderItems();
+            renderAdminItems();
+            showToast("Item permanently deleted.", 'info');
+        }
+
+        function handleCreatePromo(e) {
+            e.preventDefault();
+            if (!isUserOwner(currentUser)) return;
+
+            const name = document.getElementById('promoName').value.trim().toUpperCase();
+            const discount = parseFloat(document.getElementById('promoDiscount').value);
+            const globalLimit = parseInt(document.getElementById('promoGlobalLimit').value);
+            const userLimit = parseInt(document.getElementById('promoUserLimit').value);
+
+            if (promoCodes.some(p => p.name.toUpperCase() === name)) {
+                showToast(`Promo code '${name}' already exists! Delete existing one first.`, 'error');
+                return;
+            }
+
+            const newPromo = {
+                id: "promo-" + Date.now(),
+                name,
+                discount,
+                globalLimit,
+                userLimit,
+                usedCount: 0
+            };
+
+            promoCodes.unshift(newPromo);
+            saveData();
+            renderPromoCodes();
+            e.target.reset();
+            showToast(`Promo Code '${name}' created!`, 'success');
+        }
+
+        function renderPromoCodes() {
+            const container = document.getElementById('promoListContainer');
+            container.innerHTML = "";
+
+            if (promoCodes.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-500 py-2">No active promo codes created yet.</p>`;
+                return;
+            }
+
+            promoCodes.forEach(p => {
+                const isExpired = p.usedCount >= p.globalLimit;
+                const card = document.createElement('div');
+                card.className = "flex items-center justify-between p-3 rounded-xl bg-brand-card border border-brand-border text-xs";
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-yellow-400 font-mono text-sm">${p.name}</span>
+                            ${isExpired ? `<span class="bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-[10px] font-bold">Expired</span>` : `<span class="bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-[10px] font-bold">Active</span>`}
+                        </div>
+                        <p class="text-gray-400 text-[11px] mt-0.5">Discount: ₹${p.discount} OFF | Uses: ${p.usedCount}/${p.globalLimit} max</p>
+                    </div>
+                    <button onclick="deletePromoCode('${p.id}')" class="p-2 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/40 transition">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function deletePromoCode(promoId) {
+            promoCodes = promoCodes.filter(p => p.id !== promoId);
+            saveData();
+            renderPromoCodes();
+            showToast("Promo code deleted.", 'info');
+        }
+
+        // --- ORDER PROCESSING & WORKFLOW (DECLINE / APPROVE / DONE) ---
+        function renderOrders() {
+            const container = document.getElementById('adminOrdersList');
+            const badge = document.getElementById('pendingOrdersBadge');
+            container.innerHTML = "";
+
+            if (orders.length > 0) {
+                badge.classList.remove('hidden');
+                badge.innerText = orders.length;
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            if (orders.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-500 text-center py-6">No customer orders in queue.</p>`;
+                return;
+            }
+
+            orders.forEach(order => {
+                const card = document.createElement('div');
+                card.className = "bg-brand-card p-4 rounded-2xl border border-brand-border space-y-3 relative shadow";
+                
+                let statusBadgeClass = "bg-yellow-500/20 text-yellow-400";
+                if (order.status === 'Approved') statusBadgeClass = "bg-yellow-500/30 text-yellow-300 font-bold border border-yellow-500/40";
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-brand-border/60 pb-2">
+                        <div>
+                            <span class="text-xs font-mono text-gray-400 font-bold">${order.id}</span>
+                            <h4 class="font-bold text-white text-sm">${order.itemName} (₹${order.price})</h4>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] ${statusBadgeClass}">${order.status}</span>
+                    </div>
+
+                    <!-- CLICKING CUSTOMER NAME OPENS DETAILED INSPECTION MODAL -->
+                    <div class="bg-brand-dark/50 p-3 rounded-xl border border-brand-border flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] text-gray-400 uppercase tracking-wider block font-bold">Customer (Click to Check Order)</span>
+                            <button onclick="openOwnerOrderInspector('${order.id}')" class="text-sm font-black text-green-400 hover:text-green-300 underline flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-check"></i> ${order.username} (${order.mcUser})
+                            </button>
+                        </div>
+                        <button onclick="openOwnerOrderInspector('${order.id}')" class="px-3 py-1.5 rounded-lg bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600/30 text-xs font-bold border border-yellow-500/30 transition">
+                            Inspect Proof
+                        </button>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-2 border-t border-brand-border/40">
+                        <button onclick="handleDeclineOrder('${order.id}')" class="px-3 py-1.5 rounded-xl bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/40 text-xs font-bold transition">
+                            <i class="fa-solid fa-xmark"></i> Decline
+                        </button>
+                        <button onclick="handleApproveOrder('${order.id}')" ${order.status==='Approved'?'disabled class="opacity-50 cursor-not-allowed px-3 py-1.5 rounded-xl bg-yellow-600/30 text-yellow-300 text-xs font-bold"':''} class="px-3 py-1.5 rounded-xl bg-yellow-600/30 text-yellow-300 border border-yellow-500/40 hover:bg-yellow-600/50 text-xs font-bold transition">
+                            <i class="fa-solid fa-check"></i> Approve
+                        </button>
+                        <button onclick="handleDoneOrder('${order.id}')" class="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow transition">
+                            <i class="fa-solid fa-circle-check"></i> Done (Deliver)
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // OPEN DETAILED OWNER ORDER INSPECTOR MODAL
+        function openOwnerOrderInspector(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const modalContent = document.getElementById('ownerOrderDetailsContent');
+            modalContent.innerHTML = `
+                <div class="space-y-4">
+                    <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-2 text-xs">
+                        <div class="flex justify-between py-1 border-b border-brand-border/40">
+                            <span class="text-gray-400">Order ID:</span>
+                            <span class="font-mono text-yellow-300 font-bold">${order.id}</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-brand-border/40">
+                            <span class="text-gray-400">Customer Display Name:</span>
+                            <span class="font-bold text-white">${order.username}</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-brand-border/40">
+                            <span class="text-gray-400">Minecraft In-Game Tag:</span>
+                            <span class="font-bold text-green-400">${order.mcUser}</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-brand-border/40">
+                            <span class="text-gray-400">Verified Email:</span>
+                            <span class="font-semibold text-gray-200">${order.email}</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-brand-border/40">
+                            <span class="text-gray-400">Phone Number:</span>
+                            <span class="font-semibold text-gray-200">${order.phone}</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-brand-border/40">
+                            <span class="text-gray-400">Item Purchased:</span>
+                            <span class="font-bold text-cyan-300">${order.itemName} (₹${order.price})</span>
+                        </div>
+                        <div class="flex justify-between py-1">
+                            <span class="text-gray-400">Current Status:</span>
+                            <span class="font-bold text-yellow-400">${order.status}</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="block text-xs font-bold text-gray-300 mb-2 uppercase">Uploaded Payment Screenshot Proof:</span>
+                        <div class="w-full max-h-80 rounded-2xl border border-brand-border overflow-hidden bg-black flex items-center justify-center p-2">
+                            <img src="${order.proofUrl}" class="max-h-72 object-contain rounded-xl">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 pt-3 border-t border-brand-border/60">
+                        <button onclick="handleDeclineOrder('${order.id}'); toggleModal('ownerOrderModal');" class="px-2 py-3 rounded-xl bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/40 font-bold text-xs transition">
+                            <i class="fa-solid fa-xmark"></i> Decline
+                        </button>
+                        <button onclick="handleApproveOrder('${order.id}'); toggleModal('ownerOrderModal');" ${order.status==='Approved'?'disabled class="opacity-50 cursor-not-allowed px-2 py-3 rounded-xl bg-yellow-600/30 text-yellow-300 font-bold text-xs"':''} class="px-2 py-3 rounded-xl bg-yellow-600/30 hover:bg-yellow-600/50 text-yellow-300 border border-yellow-500/40 font-bold text-xs transition">
+                            <i class="fa-solid fa-check"></i> Approve
+                        </button>
+                        <button onclick="handleDoneOrder('${order.id}'); toggleModal('ownerOrderModal');" class="px-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition">
+                            <i class="fa-solid fa-circle-check"></i> Done (Deliver)
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            toggleModal('ownerOrderModal');
+        }
+
+        // WORKFLOW ACTION 1: DECLINE -> Removes order from Owner panel, sends decline notification to target user
+        function handleDeclineOrder(orderId) {
+            const orderIndex = orders.findIndex(o => o.id === orderId);
+            if (orderIndex === -1) return;
+
+            const order = orders[orderIndex];
+
+            // Notify user
+            notifications.unshift({
+                id: "notif-" + Date.now(),
+                targetUserEmail: order.userEmail || order.email,
+                targetUsername: order.username,
+                text: `❌ Your order ${order.id} for '${order.itemName}' has been DECLINED by Box SMP owner.`,
+                timestamp: new Date().toLocaleTimeString()
+            });
+
+            // Remove order from queue completely
+            orders.splice(orderIndex, 1);
+
+            saveData();
+            renderOrders();
+            renderNotifications();
+            showToast(`Order ${orderId} declined and removed from queue.`, 'info');
+        }
+
+        // WORKFLOW ACTION 2: APPROVE -> Updates status to 'Approved', KEEPS order in owner panel, sends approval notification
+        function handleApproveOrder(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (!order) return;
+
+            order.status = "Approved";
+
+            // Notify target user
+            notifications.unshift({
+                id: "notif-" + Date.now(),
+                targetUserEmail: order.userEmail || order.email,
+                targetUsername: order.username,
+                text: `🟡 Your order ${order.id} for '${order.itemName}' has been APPROVED! Items will be delivered in-game shortly.`,
+                timestamp: new Date().toLocaleTimeString()
+            });
+
+            saveData();
+            renderOrders();
+            renderNotifications();
+            showToast(`Order ${orderId} marked as Approved. Stays in queue until Done!`, 'success');
+        }
+
+        // WORKFLOW ACTION 3: DONE -> Decreases stock, REMOVES order from Owner panel, sends completion notification
+        function handleDoneOrder(orderId) {
+            const orderIndex = orders.findIndex(o => o.id === orderId);
+            if (orderIndex === -1) return;
+
+            const order = orders[orderIndex];
+
+            // Decrease stock
+            const item = items.find(i => i.id === order.itemId);
+            if (item && item.stock > 0) {
+                item.stock = Math.max(0, item.stock - 1);
+            }
+
+            // Send targeted notification to buyer
+            notifications.unshift({
+                id: "notif-" + Date.now(),
+                targetUserEmail: order.userEmail || order.email,
+                targetUsername: order.username,
+                text: `✅ Your order ${order.id} for '${order.itemName}' is COMPLETED! Delivered in-game to ${order.mcUser}.`,
+                timestamp: new Date().toLocaleTimeString()
+            });
+
+            // Remove order from owner queue upon completion
+            orders.splice(orderIndex, 1);
+
+            saveData();
+            renderItems();
+            renderAdminItems();
+            renderOrders();
+            renderNotifications();
+            showToast(`Order ${orderId} delivered & completed! Removed from queue.`, 'success');
+        }
+
+        // NOTIFICATIONS SYSTEM - RENDERS NOTIFICATIONS ONLY RELEVANT TO CURRENT LOGGED IN USER
+        function renderNotifications() {
+            const container = document.getElementById('notificationsList');
+            const badge = document.getElementById('notifBadge');
+            container.innerHTML = "";
+
+            let userNotifs = [];
+
+            if (currentUser) {
+                if (isUserOwner(currentUser)) {
+                    // Owner sees all activity notifications
+                    userNotifs = notifications;
+                } else {
+                    // Standard user sees ONLY notifications targeted to their specific account
+                    userNotifs = notifications.filter(n => n.targetUserEmail === currentUser.email || n.targetUsername === currentUser.username);
+                }
+            }
+
+            if (userNotifs.length > 0) {
+                badge.classList.remove('hidden');
+                badge.innerText = userNotifs.length;
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            if (userNotifs.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">No notifications for your account yet</p>`;
+                return;
+            }
+
+            userNotifs.forEach(n => {
+                const item = document.createElement('div');
+                item.className = "p-3 rounded-xl bg-brand-card border border-brand-border text-xs text-gray-200 space-y-1";
+                item.innerHTML = `
+                    <p class="leading-relaxed font-semibold">${n.text}</p>
+                    <span class="text-[10px] text-gray-400 block">${n.timestamp}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // --- UTILITY FUNCTIONS ---
+        function toggleModal(modalId) {
+            const m = document.getElementById(modalId);
+            if (m) m.classList.toggle('hidden');
+        }
+
+        function copyServerIp() {
+            const ip = "paid34.skilloraclouds.com:25605";
+            const el = document.createElement('textarea');
+            el.value = ip;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            showToast("Server IP copied to clipboard!", 'success');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let bgClass = "bg-gray-800 border-gray-600 text-white";
+            if (type === 'success') bgClass = "bg-emerald-900/90 border-green-500 text-green-200";
+            if (type === 'error') bgClass = "bg-red-900/90 border-red-500 text-red-200";
+
+            toast.className = `px-4 py-3 rounded-2xl border ${bgClass} shadow-2xl text-xs font-bold backdrop-blur-md transition-all duration-300 transform translate-y-2 pointer-events-auto max-w-xs`;
+            toast.innerText = message;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
